@@ -1,5 +1,6 @@
 mod constants;
 mod errors;
+mod events;
 mod instructions;
 mod states;
 
@@ -18,6 +19,6 @@ pub mod p2p {
     }
 
     pub fn create_escrow(ctx: Context<CreateEscrow>, amount: u64) -> Result<()> {
-        ctx.accounts.create_escrow(amount, ctx.bumps.escrow)
+        ctx.accounts.create_escrow(amount, &ctx.bumps)
     }
 }

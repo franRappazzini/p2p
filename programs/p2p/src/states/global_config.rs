@@ -13,4 +13,20 @@ pub struct GlobalConfig {
 
 impl GlobalConfig {
     pub const SIZE: usize = DISCRIMINATOR_SIZE + GlobalConfig::INIT_SPACE;
+
+    pub fn calculate_fee(&self, amount: u64) -> u64 {
+        amount
+            .checked_mul(self.fee_bps as u64)
+            .unwrap()
+            .checked_div(10_000)
+            .unwrap()
+    }
+
+    pub fn increment_escrow_count(&mut self) {
+        self.escrow_count = self.escrow_count.checked_add(1).unwrap();
+    }
+
+    pub fn decrement_escrow_count(&mut self) {
+        self.escrow_count = self.escrow_count.checked_sub(1).unwrap();
+    }
 }

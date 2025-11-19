@@ -1,12 +1,12 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::Token,
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
 use crate::{
     constants::{ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED},
+    events,
     states::{Escrow, GlobalConfig, MintVault},
 };
 
@@ -65,7 +65,50 @@ pub struct CreateEscrow<'info> {
 }
 
 impl<'info> CreateEscrow<'info> {
-    pub fn create_escrow(&mut self, amount: u64, escrow_bump: u8) -> Result<()> {
+    pub fn create_escrow(&mut self, amount: u64, bumps: &CreateEscrowBumps) -> Result<()> {
+        // tranfer tokens to mint vault ata
+        let cpi_account = anchor_spl::token::Transfer {
+            from: self.creator_ata.to_account_info(),
+            to: self.mint_vault_ata.to_account_info(),
+            authority: self.creator.to_account_info(),
+        };
+
+        let cpi_ctx = CpiContext::new(self.token_program.to_account_info(), cpi_account);
+
+        let fee = self.global_config.calculate_fee(amount);
+
+        anchor_spl::token::transfer(cpi_ctx, amount.checked_add(fee).unwrap())?;
+
+        // set escrow data
+        self.escrow.set_inner(Escrow {
+            id: self.global_config.escrow_count,
+            buyer: self.creator.key(),
+            seller: Pubkey::default(),
+            mint: self.mint.key(),
+            amount,
+            bump: bumps.escrow,
+        });
+
+        // increment escrow counter
+        self.global_config.increment_escrow_count();
+
+        // set mint vault data if not already set
+        if !self.mint_vault.is_initialized {
+            self.mint_vault.set_inner(MintVault {
+                is_initialized: true,
+                mint: self.mint.key(),
+                available_amount: 0, // will be updated on release, not here
+                bump: bumps.mint_vault,
+            });
+        }
+
+        // emit event
+        emit!(events::EscrowCreated {
+            buyer: self.escrow.buyer.key(),
+            mint: self.mint.key(),
+            amount,
+        });
+
         Ok(())
     }
 }

@@ -5,12 +5,12 @@ use crate::constants::DISCRIMINATOR_SIZE;
 #[account]
 #[derive(InitSpace)]
 pub struct Escrow {
-    id: u64,
-    buyer: Pubkey,
-    seller: Pubkey,
-    mint: Pubkey,
-    amount: u64,
-    bump: u8,
+    pub id: u64,
+    pub buyer: Pubkey,
+    pub seller: Pubkey,
+    pub mint: Pubkey,
+    pub amount: u64,
+    pub bump: u8,
 }
 
 impl Escrow {
