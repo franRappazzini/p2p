@@ -6,8 +6,8 @@ use crate::constants::DISCRIMINATOR_SIZE;
 #[derive(InitSpace)]
 pub struct Escrow {
     pub id: u64,
-    pub buyer: Pubkey,
     pub seller: Pubkey,
+    pub buyer: Pubkey,
     pub mint: Pubkey,
     pub amount: u64,
     pub bump: u8,

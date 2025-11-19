@@ -6,6 +6,7 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from "@solana/spl-token";
+import { getEscrowAccount, getGlobalConfigAccount } from "./utils/accounts";
 
 import { FEE_BPS } from "./utils/constants";
 import { P2p } from "../target/types/p2p";
@@ -52,11 +53,7 @@ describe("p2p", () => {
     const tx = await program.methods.initialize(FEE_BPS).rpc();
     console.log("`initialize` tx signature:", tx);
 
-    const [globalConfigPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("global_config")],
-      program.programId
-    );
-    const globalConfigAccount = await program.account.globalConfig.fetch(globalConfigPda);
+    const globalConfigAccount = await getGlobalConfigAccount(program);
 
     console.log("Global config account:", globalConfigAccount);
   });
@@ -73,17 +70,16 @@ describe("p2p", () => {
 
     console.log("`create_escrow` tx signature:", tx);
 
-    const [globalConfigPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("global_config")],
-      program.programId
-    );
-    const globalConfigAccount = await program.account.globalConfig.fetch(globalConfigPda);
+    const globalConfigAccount = await getGlobalConfigAccount(program);
 
     console.log("Global config account after creating escrow:", globalConfigAccount);
 
-    const escrowAccount = await program.account.escrow.all();
+    const escrowAccount = await getEscrowAccount(
+      program,
+      globalConfigAccount.escrowCount.toNumber() - 1
+    );
 
     console.log("Escrow account:", escrowAccount);
-    console.log(escrowAccount[0].account.amount.toNumber());
+    console.log(escrowAccount.amount.toNumber());
   });
 });

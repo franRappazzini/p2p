@@ -82,8 +82,8 @@ impl<'info> CreateEscrow<'info> {
         // set escrow data
         self.escrow.set_inner(Escrow {
             id: self.global_config.escrow_count,
-            buyer: self.creator.key(),
-            seller: Pubkey::default(),
+            seller: self.creator.key(),
+            buyer: Pubkey::default(),
             mint: self.mint.key(),
             amount,
             bump: bumps.escrow,
