@@ -21,4 +21,8 @@ async function getEscrowAccount(program: anchor.Program<P2p>, id: number) {
   return await program.account.escrow.fetch(escrowPda);
 }
 
-export { getGlobalConfigAccount, getEscrowAccount };
+async function getAllEscrowAccounts(program: anchor.Program<P2p>) {
+  return await program.account.escrow.all();
+}
+
+export { getGlobalConfigAccount, getEscrowAccount, getAllEscrowAccounts };

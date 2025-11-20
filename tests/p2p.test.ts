@@ -6,7 +6,8 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
 } from "@solana/spl-token";
-import { getEscrowAccount, getGlobalConfigAccount } from "./utils/accounts";
+import { createEventListeners, removeEventListener } from "./utils/events";
+import { getAllEscrowAccounts, getEscrowAccount, getGlobalConfigAccount } from "./utils/accounts";
 
 import { FEE_BPS } from "./utils/constants";
 import { P2p } from "../target/types/p2p";
@@ -22,6 +23,8 @@ describe("p2p", () => {
   const program = anchor.workspace.p2p as Program<P2p>;
 
   let randomMint: anchor.web3.PublicKey;
+
+  const eventListeners = createEventListeners(program);
 
   before(async () => {
     randomMint = await createMint(
@@ -81,5 +84,20 @@ describe("p2p", () => {
 
     console.log("Escrow account:", escrowAccount);
     console.log(escrowAccount.amount.toNumber());
+  });
+
+  it("`take_escrow`!", async () => {
+    const id = bn(0);
+    const tx = await program.methods.takeEscrow(id).rpc();
+
+    console.log("`take_escrow` tx signature:", tx);
+
+    const res = await getAllEscrowAccounts(program);
+
+    console.log("All escrow accounts:", res);
+  });
+
+  after(async () => {
+    await removeEventListener(program, eventListeners);
   });
 });

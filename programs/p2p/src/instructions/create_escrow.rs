@@ -104,7 +104,8 @@ impl<'info> CreateEscrow<'info> {
 
         // emit event
         emit!(events::EscrowCreated {
-            buyer: self.escrow.buyer.key(),
+            id: self.escrow.id,
+            seller: self.creator.key(),
             mint: self.mint.key(),
             amount,
         });

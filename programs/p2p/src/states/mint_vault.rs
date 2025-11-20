@@ -6,7 +6,7 @@ use crate::constants::DISCRIMINATOR_SIZE;
 #[derive(InitSpace)]
 pub struct MintVault {
     pub mint: Pubkey,
-    pub available_amount: u64, // to withdraw
+    pub available_amount: u64, // available amount to withdraw
     pub is_initialized: bool,
     pub bump: u8,
 }
