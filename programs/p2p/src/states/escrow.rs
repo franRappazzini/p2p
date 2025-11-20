@@ -10,6 +10,7 @@ pub struct Escrow {
     pub buyer: Pubkey,
     pub mint: Pubkey,
     pub amount: u64,
+    // pub in_dispute: bool, // TODO (fran): implement dispute state to "pause" the escrow
     pub bump: u8,
 }
 

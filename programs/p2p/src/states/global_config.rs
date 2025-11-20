@@ -25,8 +25,4 @@ impl GlobalConfig {
     pub fn increment_escrow_count(&mut self) {
         self.escrow_count = self.escrow_count.checked_add(1).unwrap();
     }
-
-    pub fn decrement_escrow_count(&mut self) {
-        self.escrow_count = self.escrow_count.checked_sub(1).unwrap();
-    }
 }
