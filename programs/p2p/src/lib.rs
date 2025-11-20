@@ -33,4 +33,8 @@ pub mod p2p {
     ) -> Result<()> {
         ctx.accounts.release_tokens_in_escrow(escrow_id, signature)
     }
+
+    pub fn withdraw_spl(ctx: Context<WithdrawSpl>) -> Result<()> {
+        ctx.accounts.withdraw_spl()
+    }
 }

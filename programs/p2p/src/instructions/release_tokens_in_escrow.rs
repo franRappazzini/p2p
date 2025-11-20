@@ -1,8 +1,14 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{associated_token::AssociatedToken, token_interface::{Mint, TokenInterface, TokenAccount}};
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token_interface::{Mint, TokenAccount, TokenInterface},
+};
 
 use crate::{
-    constants::{ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED}, errors::P2pError, states::{Escrow, GlobalConfig, MintVault}
+    constants::{ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED},
+    errors::P2pError,
+    events,
+    states::{Escrow, GlobalConfig, MintVault},
 };
 
 #[derive(Accounts)]
@@ -26,7 +32,7 @@ pub struct ReleaseTokensInEscrow<'info> {
         seeds = [ESCROW_SEED, escrow_id.to_le_bytes().as_ref()],
         bump = escrow.bump,
         has_one = seller,
-        has_one = buyer,      
+        has_one = buyer,
         has_one = mint,
     )]
     pub escrow: Account<'info, Escrow>,
@@ -57,8 +63,8 @@ pub struct ReleaseTokensInEscrow<'info> {
         associated_token::token_program = token_program,
     )]
     pub buyer_ata: InterfaceAccount<'info, TokenAccount>,
-    
-    pub associated_token_program:Program<'info, AssociatedToken>,
+
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
@@ -66,20 +72,50 @@ pub struct ReleaseTokensInEscrow<'info> {
 impl<'info> ReleaseTokensInEscrow<'info> {
     pub fn release_tokens_in_escrow(&mut self, _escrow_id: u64, signature: [u8; 64]) -> Result<()> {
         // verify signature
-        let message = format!("approve_release:{}", self.escrow.key());
-        brine_ed25519::sig_verify(&self.seller.key().to_bytes(), &signature, &message.as_bytes())
-            .map_err(|err| {
-                msg!("Signature verification failed {:?}", err);
-                P2pError::SignatureVerificationFailed
-            })?;
+        let message = format!("approve_release:{}", self.escrow.key()); // less than 3000 CU (tested manually)
 
-        // calculate fee
+        brine_ed25519::sig_verify(
+            &self.seller.key().to_bytes(),
+            &signature,
+            &message.as_bytes(),
+        )
+        .map_err(|err| {
+            msg!("Signature verification failed {:?}", err);
+            P2pError::SignatureVerificationFailed
+        })?;
 
         // transfer tokens to buyer ata
+        let mint_key = self.mint.key();
+        let signer_seeds: &[&[&[u8]]] =
+            &[&[MINT_VAULT_SEED, mint_key.as_ref(), &[self.mint_vault.bump]]];
+
+        let cpi_accounts = anchor_spl::token::Transfer {
+            from: self.mint_vault_ata.to_account_info(),
+            to: self.buyer_ata.to_account_info(),
+            authority: self.mint_vault.to_account_info(),
+        };
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            self.token_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
+
+        let fee = self.global_config.calculate_fee(self.escrow.amount);
+
+        anchor_spl::token::transfer(cpi_ctx, self.escrow.amount.checked_sub(fee).unwrap())?;
 
         // update available amount to withdraw in mint vault
+        self.mint_vault.add_available_amount(fee);
 
         // emit event
+        emit!(events::TokensReleased {
+            id: self.escrow.id,
+            seller: self.seller.key(),
+            buyer: self.buyer.key(),
+            mint: self.mint.key(),
+            amount: self.escrow.amount,
+        });
 
         Ok(())
     }

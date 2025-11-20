@@ -13,4 +13,8 @@ pub struct MintVault {
 
 impl MintVault {
     pub const SIZE: usize = DISCRIMINATOR_SIZE + MintVault::INIT_SPACE;
+
+    pub fn add_available_amount(&mut self, amount: u64) {
+        self.available_amount = self.available_amount.checked_add(amount).unwrap();
+    }
 }

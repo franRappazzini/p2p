@@ -11,7 +11,11 @@ function createEventListeners(program: anchor.Program<P2p>) {
     console.log("Escrow Taken Event:", event.id);
   });
 
-  return [createEscrowListener, takeEscrowListener];
+  const tokensReleasedListener = program.addEventListener("tokensReleased", (event) => {
+    console.log("Tokens Released Event:", event.id);
+  });
+
+  return [createEscrowListener, takeEscrowListener, tokensReleasedListener];
 }
 
 async function removeEventListener(program: anchor.Program<P2p>, listeners: number[]) {

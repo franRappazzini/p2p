@@ -16,3 +16,12 @@ pub struct EscrowTaken {
     pub mint: Pubkey,
     pub amount: u64,
 }
+
+#[event]
+pub struct TokensReleased {
+    pub id: u64,
+    pub seller: Pubkey,
+    pub buyer: Pubkey,
+    pub mint: Pubkey,
+    pub amount: u64,
+}

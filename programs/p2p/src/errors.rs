@@ -6,4 +6,6 @@ pub enum P2pError {
     EscrowAlreadyTaken,
     #[msg("Signature verification failed.")]
     SignatureVerificationFailed,
+    #[msg("No available funds to withdraw.")]
+    NoAvailableFundsToWithdraw,
 }
