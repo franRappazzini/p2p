@@ -1,6 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 
 import { ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED } from "./constants";
+import { escrowParser, globalConfigParser } from "./parsers";
 
 import { P2p } from "../../target/types/p2p";
 import { bn } from "./functions";
@@ -11,7 +12,7 @@ async function getGlobalConfigAccount(program: anchor.Program<P2p>) {
     [GLOBAL_CONFIG_SEED],
     program.programId
   );
-  return await program.account.globalConfig.fetch(globalConfigPda);
+  return globalConfigParser(await program.account.globalConfig.fetch(globalConfigPda));
 }
 
 // escrow accounts
@@ -20,7 +21,7 @@ async function getEscrowAccount(program: anchor.Program<P2p>, id: number) {
     [ESCROW_SEED, bn(id).toArrayLike(Buffer, "le", 8)],
     program.programId
   );
-  return await program.account.escrow.fetch(escrowPda);
+  return escrowParser(await program.account.escrow.fetch(escrowPda));
 }
 
 async function getAllEscrowAccounts(program: anchor.Program<P2p>) {

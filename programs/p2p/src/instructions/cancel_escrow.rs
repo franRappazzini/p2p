@@ -13,16 +13,13 @@ use crate::{
 
 #[derive(Accounts)]
 #[instruction(escrow_id: u64)]
-pub struct ReleaseTokensInEscrow<'info> {
+pub struct CancelEscrow<'info> {
     #[account(mut)]
-    pub buyer: Signer<'info>,
-
-    #[account(mut)]
-    pub seller: SystemAccount<'info>,
+    pub seller: Signer<'info>,
 
     #[account(
         seeds = [GLOBAL_CONFIG_SEED],
-        bump,
+        bump = global_config.bump,
     )]
     pub global_config: Account<'info, GlobalConfig>,
 
@@ -32,9 +29,8 @@ pub struct ReleaseTokensInEscrow<'info> {
         seeds = [ESCROW_SEED, escrow_id.to_le_bytes().as_ref()],
         bump = escrow.bump,
         has_one = seller,
-        has_one = buyer,
-        has_one = mint,
-        constraint = escrow.state == EscrowState::FiatPaid @ P2pError::InvalidEscrowState,
+        constraint = escrow.state == EscrowState::Open,
+        constraint  = escrow.can_cancel(global_config.fiat_deadline_secs) @ P2pError::CannotCancelEscrowYet,
     )]
     pub escrow: Account<'info, Escrow>,
 
@@ -57,65 +53,40 @@ pub struct ReleaseTokensInEscrow<'info> {
     pub mint_vault_ata: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
-        init_if_needed,
-        payer = buyer,
+        mut,
         associated_token::mint = mint,
-        associated_token::authority = buyer,
+        associated_token::authority = seller,
         associated_token::token_program = token_program,
     )]
-    pub buyer_ata: InterfaceAccount<'info, TokenAccount>,
+    pub seller_ata: InterfaceAccount<'info, TokenAccount>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Interface<'info, TokenInterface>,
-    pub system_program: Program<'info, System>,
 }
 
-impl<'info> ReleaseTokensInEscrow<'info> {
-    pub fn release_tokens_in_escrow(&mut self, _escrow_id: u64, signature: [u8; 64]) -> Result<()> {
-        // verify signature
-        let message = format!("approve_release:{}", self.escrow.key()); // less than 3000 CU (tested manually)
-
-        brine_ed25519::sig_verify(
-            &self.seller.key().to_bytes(),
-            &signature,
-            &message.as_bytes(),
-        )
-        .map_err(|err| {
-            msg!("Signature verification failed {:?}", err);
-            P2pError::SignatureVerificationFailed
-        })?;
-
-        // transfer tokens to buyer ata
-        let mint_key = self.mint.key();
-        let signer_seeds: &[&[&[u8]]] =
-            &[&[MINT_VAULT_SEED, mint_key.as_ref(), &[self.mint_vault.bump]]];
-
+impl<'info> CancelEscrow<'info> {
+    pub fn cancel_escrow(&self, _escrow_id: u64) -> Result<()> {
+        // transfer tokens back to seller
         let cpi_accounts = anchor_spl::token::Transfer {
             from: self.mint_vault_ata.to_account_info(),
-            to: self.buyer_ata.to_account_info(),
+            to: self.seller_ata.to_account_info(),
             authority: self.mint_vault.to_account_info(),
         };
 
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.token_program.to_account_info(),
-            cpi_accounts,
-            signer_seeds,
-        );
+        let cpi_ctx = CpiContext::new(self.token_program.to_account_info(), cpi_accounts);
 
         let fee = self.global_config.calculate_fee(self.escrow.amount);
+        let total_amount = self.escrow.amount.checked_add(fee).unwrap();
 
-        anchor_spl::token::transfer(cpi_ctx, self.escrow.amount.checked_sub(fee).unwrap())?;
-
-        // update available amount to withdraw in mint vault
-        self.mint_vault.add_available_amount(fee);
+        anchor_spl::token::transfer(cpi_ctx, total_amount)?;
 
         // emit event
-        emit!(events::TokensReleased {
+        emit!(events::EscrowCancelled {
             id: self.escrow.id,
             seller: self.seller.key(),
-            buyer: self.buyer.key(),
             mint: self.mint.key(),
-            amount: self.escrow.amount,
+            returned_amount: total_amount,
+            canceled_at: Clock::get()?.unix_timestamp,
         });
 
         Ok(())

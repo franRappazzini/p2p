@@ -8,6 +8,7 @@ pub struct GlobalConfig {
     pub authority: Pubkey,
     pub escrow_count: u64,
     pub fee_bps: u16,
+    pub fiat_deadline_secs: i64,
     pub bump: u8,
 }
 

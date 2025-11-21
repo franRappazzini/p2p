@@ -20,11 +20,17 @@ pub struct Initialize<'info> {
 }
 
 impl<'info> Initialize<'info> {
-    pub fn initialize(&mut self, fee_bps: u16, global_config_bump: u8) -> Result<()> {
+    pub fn initialize(
+        &mut self,
+        fee_bps: u16,
+        fiat_deadline_secs: i64,
+        global_config_bump: u8,
+    ) -> Result<()> {
         self.global_config.set_inner(GlobalConfig {
             authority: self.authority.key(),
             escrow_count: 0,
             fee_bps,
+            fiat_deadline_secs,
             bump: global_config_bump,
         });
 

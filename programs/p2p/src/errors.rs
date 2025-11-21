@@ -8,4 +8,8 @@ pub enum P2pError {
     SignatureVerificationFailed,
     #[msg("No available funds to withdraw.")]
     NoAvailableFundsToWithdraw,
+    #[msg("The escrow cannot be canceled yet. Please wait until the fiat deadline has passed.")]
+    CannotCancelEscrowYet,
+    #[msg("Invalid escrow state for this operation.")]
+    InvalidEscrowState,
 }

@@ -14,16 +14,21 @@ declare_id!("GQKqoMVW3BuSzFRRkfeVsLPArAkRiZkd1vkVNGeqRmJG");
 pub mod p2p {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, fee_bps: u16) -> Result<()> {
-        ctx.accounts.initialize(fee_bps, ctx.bumps.global_config)
+    pub fn initialize(
+        ctx: Context<Initialize>,
+        fee_bps: u16,
+        fiat_deadline_secs: i64,
+    ) -> Result<()> {
+        ctx.accounts
+            .initialize(fee_bps, fiat_deadline_secs, ctx.bumps.global_config)
     }
 
     pub fn create_escrow(ctx: Context<CreateEscrow>, amount: u64) -> Result<()> {
         ctx.accounts.create_escrow(amount, &ctx.bumps)
     }
 
-    pub fn take_escrow(ctx: Context<TakeEscrow>, escrow_id: u64) -> Result<()> {
-        ctx.accounts.take_escrow(escrow_id)
+    pub fn mark_escrow_as_paid(ctx: Context<MarkEscrowAsPaid>, escrow_id: u64) -> Result<()> {
+        ctx.accounts.mark_escrow_as_paid(escrow_id)
     }
 
     pub fn release_tokens_in_escrow(
@@ -32,6 +37,10 @@ pub mod p2p {
         signature: [u8; 64],
     ) -> Result<()> {
         ctx.accounts.release_tokens_in_escrow(escrow_id, signature)
+    }
+
+    pub fn cancel_escrow(ctx: Context<CancelEscrow>, escrow_id: u64) -> Result<()> {
+        ctx.accounts.cancel_escrow(escrow_id)
     }
 
     pub fn withdraw_spl(ctx: Context<WithdrawSpl>) -> Result<()> {

@@ -1,5 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 
+import { FEE_BPS, FIAT_DEADLINE_SECS } from "./utils/constants";
 import {
   TOKEN_PROGRAM_ID,
   createMint,
@@ -14,7 +15,6 @@ import {
   getMintVaultAccount,
 } from "./utils/accounts";
 
-import { FEE_BPS } from "./utils/constants";
 import { P2p } from "../target/types/p2p";
 import { Program } from "@coral-xyz/anchor";
 import { bn } from "./utils/functions";
@@ -64,7 +64,7 @@ describe("p2p", () => {
   });
 
   it("`initialize`!", async () => {
-    const tx = await program.methods.initialize(FEE_BPS).rpc();
+    const tx = await program.methods.initialize(FEE_BPS, FIAT_DEADLINE_SECS).rpc();
     console.log("`initialize` tx signature:", tx);
 
     const globalConfigAccount = await getGlobalConfigAccount(program);
@@ -77,6 +77,7 @@ describe("p2p", () => {
     const tx = await program.methods
       .createEscrow(amount)
       .accounts({
+        buyer: randomBuyer.publicKey,
         mint: randomMint,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -86,38 +87,39 @@ describe("p2p", () => {
 
     const globalConfigAccount = await getGlobalConfigAccount(program);
 
-    const escrowAccount = await getEscrowAccount(
-      program,
-      globalConfigAccount.escrowCount.toNumber() - 1
-    );
+    const escrowAccount = await getEscrowAccount(program, globalConfigAccount.escrowCount - 1);
+    console.log({ escrowAccount });
 
-    expect(globalConfigAccount.escrowCount.toNumber()).to.equal(1);
-    expect(escrowAccount.amount.toNumber()).to.equal(amount.toNumber());
-    expect(escrowAccount.mint.toString()).to.equal(randomMint.toString());
-    expect(escrowAccount.seller.toString()).to.equal(wallet.publicKey.toString());
+    expect(globalConfigAccount.escrowCount).to.equal(1);
+    expect(escrowAccount.amount).to.equal(amount.toNumber());
+    expect(escrowAccount.mint).to.equal(randomMint.toString());
+    expect(escrowAccount.seller).to.equal(wallet.publicKey.toString());
+    expect(escrowAccount.buyer).to.equal(randomBuyer.publicKey.toString());
   });
 
-  it("`take_escrow`!", async () => {
+  it("`mark_escrow_as_paid`!", async () => {
     const id = bn(0);
     const tx = await program.methods
-      .takeEscrow(id)
-      .accounts({ taker: randomBuyer.publicKey })
+      .markEscrowAsPaid(id)
+      .accounts({ buyer: randomBuyer.publicKey })
+      .signers([randomBuyer])
       .rpc();
 
-    console.log("`take_escrow` tx signature:", tx);
+    console.log("`mark_escrow_as_paid` tx signature:", tx);
 
     const escrowAccount = await getEscrowAccount(program, id.toNumber());
 
-    expect(escrowAccount.buyer.toString()).to.equal(randomBuyer.publicKey.toString());
+    expect(escrowAccount.seller).to.equal(wallet.publicKey.toString());
+    expect(escrowAccount.buyer).to.equal(randomBuyer.publicKey.toString());
+    expect(escrowAccount.state).to.equal("fiatPaid");
   });
 
   it("`release_tokens_in_escrow`!", async () => {
     const id = 0;
-
     const escrows = await getAllEscrowAccounts(program);
 
     // Create the message and sign it with the buyer wallet
-    const message = `approve_release:${escrows[0].publicKey.toString()}`;
+    const message = `approve_release:${escrows[id].publicKey.toString()}`;
     const messageBytes = decodeUTF8(message);
     const signature = nacl.sign.detached(messageBytes, wallet.payer?.secretKey);
     const isValid = nacl.sign.detached.verify(messageBytes, signature, wallet.publicKey.toBytes());
@@ -126,8 +128,10 @@ describe("p2p", () => {
     const tx = await program.methods
       .releaseTokensInEscrow(bn(id), Array.from(signature))
       .accounts({
+        buyer: randomBuyer.publicKey,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
+      .signers([randomBuyer])
       .rpc();
 
     console.log("`release_tokens_in_escrow` tx signature:", tx);
