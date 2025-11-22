@@ -24,7 +24,7 @@ pub struct MarkEscrowAsPaid<'info> {
         seeds = [ESCROW_SEED, escrow_id.to_le_bytes().as_ref()],
         bump = escrow.bump,
         has_one = buyer,
-        constraint = escrow.state == EscrowState::Open @ P2pError::EscrowAlreadyTaken,
+        constraint = matches!(escrow.state, EscrowState::Open(_)) @ P2pError::EscrowAlreadyTaken,
     )]
     pub escrow: Account<'info, Escrow>,
 }
@@ -33,8 +33,7 @@ impl<'info> MarkEscrowAsPaid<'info> {
     pub fn mark_escrow_as_paid(&mut self, _escrow_id: u64) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
 
-        self.escrow.state = EscrowState::FiatPaid;
-        self.escrow.fiat_paid_at = now;
+        self.escrow.state = EscrowState::FiatPaid(now);
 
         emit!(events::MarkEscrowAsPaid {
             id: self.escrow.id,

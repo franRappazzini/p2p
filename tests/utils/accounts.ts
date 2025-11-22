@@ -21,7 +21,11 @@ async function getEscrowAccount(program: anchor.Program<P2p>, id: number) {
     [ESCROW_SEED, bn(id).toArrayLike(Buffer, "le", 8)],
     program.programId
   );
-  return escrowParser(await program.account.escrow.fetch(escrowPda));
+
+  let res = escrowParser(await program.account.escrow.fetch(escrowPda));
+
+  console.log({ res });
+  return res;
 }
 
 async function getAllEscrowAccounts(program: anchor.Program<P2p>) {

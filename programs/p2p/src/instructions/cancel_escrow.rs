@@ -29,7 +29,7 @@ pub struct CancelEscrow<'info> {
         seeds = [ESCROW_SEED, escrow_id.to_le_bytes().as_ref()],
         bump = escrow.bump,
         has_one = seller,
-        constraint = escrow.state == EscrowState::Open,
+        // constraint = matches!(escrow.state, EscrowState::Open(_)),
         constraint  = escrow.can_cancel(global_config.fiat_deadline_secs) @ P2pError::CannotCancelEscrowYet,
     )]
     pub escrow: Account<'info, Escrow>,

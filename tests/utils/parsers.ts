@@ -24,9 +24,7 @@ interface EscrowParserParams {
   buyer: anchor.web3.PublicKey;
   mint: anchor.web3.PublicKey;
   amount: anchor.BN;
-  state: { [kind: string]: {} };
-  createdAt: anchor.BN;
-  fiatPaidAt: anchor.BN;
+  state: { [kind: string]: { "0": anchor.BN } };
   bump: number;
 }
 
@@ -38,8 +36,7 @@ function escrowParser(params: EscrowParserParams) {
     mint: params.mint.toString(),
     amount: params.amount.toNumber(),
     state: Object.keys(params.state)[0],
-    createdAt: params.createdAt.toNumber(),
-    fiatPaidAt: params.fiatPaidAt.toNumber(),
+    timestamp: Object.values(Object.values(params.state)[0])[0].toNumber(),
     bump: params.bump,
   };
 }

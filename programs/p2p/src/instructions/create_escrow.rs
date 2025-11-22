@@ -88,9 +88,7 @@ impl<'info> CreateEscrow<'info> {
             buyer: self.buyer.key(),
             mint: self.mint.key(),
             amount,
-            state: EscrowState::Open,
-            created_at: Clock::get()?.unix_timestamp,
-            fiat_paid_at: 0,
+            state: EscrowState::Open(Clock::get()?.unix_timestamp),
             bump: bumps.escrow,
         });
 
