@@ -143,6 +143,9 @@ describe("p2p", () => {
 
     console.log("`release_tokens_in_escrow` tx signature:", tx);
 
+    const mintVaultAccount = await getMintVaultAccount(program, randomMint);
+    expect(mintVaultAccount.availableAmount).to.greaterThan(0);
+
     try {
       await getEscrowAccount(program, id);
       expect.fail("Escrow account should be closed after token release");
@@ -182,7 +185,7 @@ describe("p2p", () => {
     }
   });
 
-  it("`create_dispute`!", async () => {
+  it("`create_dispute` (and re-dispute)!", async () => {
     // First, create a new escrow
     const amount = bn(20_000_000); // 20
     const createTx = await program.methods
@@ -218,7 +221,7 @@ describe("p2p", () => {
     const disputeVaultAccount = await getDisputeVaultAccount(connection, program);
 
     expect(escrowAccount.state).to.equal("dispute");
-    expect(disputeVaultAccount?.lamports).to.equal(DISPUTE_FEE_ESCROW.toNumber());
+    expect(disputeVaultAccount?.lamports).to.greaterThan(DISPUTE_FEE_ESCROW.toNumber());
 
     // create a await to simulate time passing before creating dispute
     await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -231,7 +234,46 @@ describe("p2p", () => {
     const disputeVaultAccountAfterRe = await getDisputeVaultAccount(connection, program);
 
     expect(escrowAccountAfterRe.state).to.equal("reDispute");
-    expect(disputeVaultAccountAfterRe?.lamports).to.equal(2 * DISPUTE_FEE_ESCROW.toNumber());
+    expect(disputeVaultAccountAfterRe?.lamports).to.greaterThan(2 * DISPUTE_FEE_ESCROW.toNumber());
+  });
+
+  it("`resolve_dispute`!", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const mintVaultAccountBefore = await getMintVaultAccount(program, randomMint);
+
+    const id = 2; // third escrow
+    const to = wallet.publicKey;
+    const toSeller = to == wallet.publicKey;
+
+    const tx = await program.methods
+      .resolveDispute(bn(id))
+      .accounts({ to, tokenProgram: TOKEN_PROGRAM_ID })
+      .rpc();
+
+    console.log("`resolve_dispute` tx signature:", tx);
+
+    const globalConfigAccount = await getGlobalConfigAccount(program);
+    console.log({ globalConfigAccount });
+    expect(globalConfigAccount.availableLamports).to.equal(DISPUTE_FEE_ESCROW.toNumber());
+
+    const disputeVaultAccount = await getDisputeVaultAccount(connection, program);
+    console.log({ disputeVaultAccount });
+    expect(disputeVaultAccount?.lamports)
+      .to.lessThan(DISPUTE_FEE_ESCROW.toNumber() * 2)
+      .to.greaterThan(DISPUTE_FEE_ESCROW.toNumber());
+
+    const mintVaultAccount = await getMintVaultAccount(program, randomMint);
+    console.log({ mintVaultAccount });
+    expect(mintVaultAccount.availableAmount).to.greaterThanOrEqual(
+      mintVaultAccountBefore.availableAmount
+    );
+
+    try {
+      await getEscrowAccount(program, id);
+      expect.fail("Escrow account should be closed after dispute resolution");
+    } catch (err) {
+      expect(err.message).to.include("Account does not exist");
+    }
   });
 
   it("`withdraw_spl`!", async () => {
@@ -246,7 +288,7 @@ describe("p2p", () => {
     console.log("`withdraw_spl` tx signature:", tx);
 
     const mintVaultAccount = await getMintVaultAccount(program, randomMint);
-    expect(mintVaultAccount.availableAmount.toNumber()).to.equal(0);
+    expect(mintVaultAccount.availableAmount).to.equal(0);
   });
 
   after(async () => {

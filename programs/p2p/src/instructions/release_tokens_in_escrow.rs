@@ -34,7 +34,7 @@ pub struct ReleaseTokensInEscrow<'info> {
         has_one = seller,
         has_one = buyer,
         has_one = mint,
-        constraint = matches!(escrow.state, EscrowState::FiatPaid(_)) @ P2pError::InvalidEscrowState,
+        constraint = escrow.can_release() @ P2pError::InvalidEscrowState,
     )]
     pub escrow: Account<'info, Escrow>,
 

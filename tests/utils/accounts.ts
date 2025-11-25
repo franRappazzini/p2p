@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 
 import { DISPUTE_VAULT_SEED, ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED } from "./constants";
-import { escrowParser, globalConfigParser } from "./parsers";
+import { escrowParser, globalConfigParser, mintVaultParser } from "./parsers";
 
 import { P2p } from "../../target/types/p2p";
 import { bn } from "./functions";
@@ -35,7 +35,7 @@ async function getMintVaultAccount(program: anchor.Program<P2p>, mint: anchor.we
     [MINT_VAULT_SEED, mint.toBuffer()],
     program.programId
   );
-  return await program.account.mintVault.fetch(mintVaultPda);
+  return mintVaultParser(await program.account.mintVault.fetch(mintVaultPda));
 }
 
 // dispute vault account

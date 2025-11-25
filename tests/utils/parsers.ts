@@ -49,4 +49,20 @@ function escrowParser(params: EscrowParserParams) {
   };
 }
 
-export { globalConfigParser, escrowParser };
+interface MintVaultParserParams {
+  mint: anchor.web3.PublicKey;
+  availableAmount: anchor.BN;
+  isInitialized: boolean;
+  bump: number;
+}
+
+function mintVaultParser(params: MintVaultParserParams) {
+  return {
+    mint: params.mint.toString(),
+    availableAmount: params.availableAmount.toNumber(),
+    isInitialized: params.isInitialized,
+    bump: params.bump,
+  };
+}
+
+export { globalConfigParser, escrowParser, mintVaultParser };

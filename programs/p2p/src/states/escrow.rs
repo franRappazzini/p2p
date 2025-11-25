@@ -26,6 +26,10 @@ impl Escrow {
         }
     }
 
+    pub fn can_release(&self) -> bool {
+        matches!(self.state, EscrowState::FiatPaid(_))
+    }
+
     pub fn dispute(&mut self, dispute_deadline_secs: i64, disputant: Pubkey) -> Result<()> {
         let current_timestamp = Clock::get()?.unix_timestamp;
 

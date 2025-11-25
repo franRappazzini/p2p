@@ -54,6 +54,11 @@ pub mod p2p {
         ctx.accounts.create_dispute(escrow_id)
     }
 
+    pub fn resolve_dispute(ctx: Context<ResolveDispute>, escrow_id: u64) -> Result<()> {
+        ctx.accounts
+            .resolve_dispute(escrow_id, ctx.bumps.dispute_vault)
+    }
+
     pub fn withdraw_spl(ctx: Context<WithdrawSpl>) -> Result<()> {
         ctx.accounts.withdraw_spl()
     }
