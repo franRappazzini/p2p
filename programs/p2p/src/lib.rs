@@ -62,4 +62,21 @@ pub mod p2p {
     pub fn withdraw_spl(ctx: Context<WithdrawSpl>) -> Result<()> {
         ctx.accounts.withdraw_spl()
     }
+
+    pub fn update_global_config(
+        ctx: Context<UpdateGlobalConfig>,
+        authority: Option<Pubkey>,
+        fee_bps: Option<u16>,
+        fiat_deadline_secs: Option<i64>,
+        dispute_deadline_secs: Option<i64>,
+        dispute_fee_escrow: Option<u64>,
+    ) -> Result<()> {
+        ctx.accounts.update_global_config(
+            authority,
+            fee_bps,
+            fiat_deadline_secs,
+            dispute_deadline_secs,
+            dispute_fee_escrow,
+        )
+    }
 }
