@@ -64,6 +64,7 @@ p2p/
 │       ├── instructions/             # Instruction logic
 │       │   ├── mod.rs
 │       │   ├── initialize.rs         # Global configuration initialization
+│       │   ├── update_global_config.rs # Update global configuration
 │       │   ├── create_escrow.rs      # Escrow creation
 │       │   ├── mark_escrow_as_paid.rs # Mark fiat payment
 │       │   ├── release_tokens_in_escrow.rs # Release tokens
@@ -343,6 +344,29 @@ pub fn withdraw_spl(
 
 ---
 
+### 9. `update_global_config`
+
+Updates the program's global configuration parameters (authority only).
+
+```rust
+pub fn update_global_config(
+    ctx: Context<UpdateGlobalConfig>,
+    authority: Option<Pubkey>,
+    fee_bps: Option<u16>,
+    fiat_deadline_secs: Option<i64>,
+    dispute_deadline_secs: Option<i64>,
+    dispute_fee_escrow: Option<u64>,
+) -> Result<()>
+```
+
+**Requirements:**
+
+- Only the current authority can call this function
+- All parameters are optional - provide only what needs to be changed
+- Changes affect all future escrows, not existing ones
+
+---
+
 ## 📊 States and Accounts
 
 ### EscrowState
@@ -450,6 +474,7 @@ The project includes a complete TypeScript test suite that covers all program fl
 6. **`create_dispute`**: Dispute and re-dispute creation
 7. **`resolve_dispute`**: Dispute resolution by authority
 8. **`withdraw_spl`**: Accumulated fees withdrawal
+9. **`update_global_config`**: Update global configuration parameters
 
 ### Test Structure
 
@@ -664,7 +689,8 @@ The authority is the account that can:
 
 - Resolve disputes
 - Withdraw accumulated fees
-- Configure global parameters
+- Update global configuration parameters (fees, deadlines, dispute deposit)
+- Transfer authority to a new account
 
 Make sure to use a secure wallet (e.g., Ledger) for mainnet.
 
