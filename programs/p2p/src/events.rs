@@ -33,3 +33,17 @@ pub struct EscrowCancelled {
     pub returned_amount: u64,
     pub canceled_at: i64,
 }
+
+#[event]
+pub struct DisputeCreated {
+    pub id: u64,
+    pub disputant: Pubkey,
+    pub disputed_at: i64,
+}
+
+#[event]
+pub struct DisputeResolved {
+    pub id: u64,
+    pub winner: Pubkey,
+    pub resolved_at: i64,
+}

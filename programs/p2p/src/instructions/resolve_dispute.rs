@@ -6,6 +6,7 @@ use anchor_spl::{
 
 use crate::{
     constants::{DISPUTE_VAULT_SEED, ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED},
+    events,
     states::{Escrow, EscrowState, GlobalConfig, MintVault},
 };
 
@@ -129,6 +130,13 @@ impl<'info> ResolveDispute<'info> {
         if self.to.key() == self.escrow.buyer {
             self.mint_vault.add_available_amount(fee);
         }
+
+        // emit event
+        emit!(events::DisputeResolved {
+            id: self.escrow.id,
+            winner: self.to.key(),
+            resolved_at: Clock::get()?.unix_timestamp
+        });
 
         Ok(())
     }

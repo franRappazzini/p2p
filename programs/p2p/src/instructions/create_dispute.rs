@@ -2,6 +2,7 @@ use anchor_lang::{prelude::*, system_program};
 
 use crate::{
     constants::{DISPUTE_VAULT_SEED, ESCROW_SEED, GLOBAL_CONFIG_SEED},
+    events,
     states::{Escrow, GlobalConfig},
 };
 
@@ -50,6 +51,15 @@ impl<'info> CreateDispute<'info> {
 
         let cpi_ctx = CpiContext::new(self.system_program.to_account_info(), cpi_accounts);
 
-        system_program::transfer(cpi_ctx, self.global_config.dispute_fee_escrow)
+        system_program::transfer(cpi_ctx, self.global_config.dispute_fee_escrow)?;
+
+        // emit event
+        emit!(events::DisputeCreated {
+            id: self.escrow.id,
+            disputant: self.disputant.key(),
+            disputed_at: Clock::get()?.unix_timestamp,
+        });
+
+        Ok(())
     }
 }

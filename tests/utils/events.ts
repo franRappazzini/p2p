@@ -19,6 +19,8 @@ function createEventListeners(program: anchor.Program<P2p>) {
     console.log("Escrow Cancelled Event:", event.id);
   });
 
+  // DisputeCreated and DisputeResolved
+
   return [
     createEscrowListener,
     markEscrowAsPaidListener,
