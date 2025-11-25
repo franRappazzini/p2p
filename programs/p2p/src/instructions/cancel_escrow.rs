@@ -8,7 +8,7 @@ use crate::{
     constants::{ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED},
     errors::P2pError,
     events,
-    states::{Escrow, EscrowState, GlobalConfig, MintVault},
+    states::{Escrow, GlobalConfig, MintVault},
 };
 
 #[derive(Accounts)]
@@ -29,8 +29,8 @@ pub struct CancelEscrow<'info> {
         seeds = [ESCROW_SEED, escrow_id.to_le_bytes().as_ref()],
         bump = escrow.bump,
         has_one = seller,
-        // constraint = matches!(escrow.state, EscrowState::Open(_)),
-        constraint  = escrow.can_cancel(global_config.fiat_deadline_secs) @ P2pError::CannotCancelEscrowYet,
+        has_one = mint,
+        constraint  = escrow.can_cancel(global_config.fiat_deadline_secs) @ P2pError::CannotCancelEscrow,
     )]
     pub escrow: Account<'info, Escrow>,
 
@@ -67,13 +67,21 @@ pub struct CancelEscrow<'info> {
 impl<'info> CancelEscrow<'info> {
     pub fn cancel_escrow(&self, _escrow_id: u64) -> Result<()> {
         // transfer tokens back to seller
+        let mint_key = self.mint.key();
+        let signer_seeds: &[&[&[u8]]] =
+            &[&[MINT_VAULT_SEED, mint_key.as_ref(), &[self.mint_vault.bump]]];
+
         let cpi_accounts = anchor_spl::token::Transfer {
             from: self.mint_vault_ata.to_account_info(),
             to: self.seller_ata.to_account_info(),
             authority: self.mint_vault.to_account_info(),
         };
 
-        let cpi_ctx = CpiContext::new(self.token_program.to_account_info(), cpi_accounts);
+        let cpi_ctx = CpiContext::new_with_signer(
+            self.token_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
 
         let fee = self.global_config.calculate_fee(self.escrow.amount);
         let total_amount = self.escrow.amount.checked_add(fee).unwrap();

@@ -7,7 +7,7 @@ use anchor_spl::{
 use crate::{
     constants::{ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED},
     events,
-    states::{Escrow, EscrowState, GlobalConfig, MintVault},
+    states::{Escrow, EscrowDisputedBy, EscrowState, GlobalConfig, MintVault},
 };
 
 #[derive(Accounts)]
@@ -89,6 +89,7 @@ impl<'info> CreateEscrow<'info> {
             mint: self.mint.key(),
             amount,
             state: EscrowState::Open(Clock::get()?.unix_timestamp),
+            disputed_by: EscrowDisputedBy::Nobody,
             bump: bumps.escrow,
         });
 

@@ -10,3 +10,6 @@ pub const ESCROW_SEED: &[u8] = b"escrow";
 
 #[constant]
 pub const MINT_VAULT_SEED: &[u8] = b"mint_vault";
+
+#[constant]
+pub const DISPUTE_VAULT_SEED: &[u8] = b"dispute_vault";

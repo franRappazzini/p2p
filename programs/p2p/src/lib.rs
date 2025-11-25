@@ -18,9 +18,16 @@ pub mod p2p {
         ctx: Context<Initialize>,
         fee_bps: u16,
         fiat_deadline_secs: i64,
+        dispute_deadline_secs: i64,
+        dispute_fee_escrow: u64,
     ) -> Result<()> {
-        ctx.accounts
-            .initialize(fee_bps, fiat_deadline_secs, ctx.bumps.global_config)
+        ctx.accounts.initialize(
+            fee_bps,
+            fiat_deadline_secs,
+            dispute_deadline_secs,
+            dispute_fee_escrow,
+            ctx.bumps.global_config,
+        )
     }
 
     pub fn create_escrow(ctx: Context<CreateEscrow>, amount: u64) -> Result<()> {
@@ -41,6 +48,10 @@ pub mod p2p {
 
     pub fn cancel_escrow(ctx: Context<CancelEscrow>, escrow_id: u64) -> Result<()> {
         ctx.accounts.cancel_escrow(escrow_id)
+    }
+
+    pub fn create_dispute(ctx: Context<CreateDispute>, escrow_id: u64) -> Result<()> {
+        ctx.accounts.create_dispute(escrow_id)
     }
 
     pub fn withdraw_spl(ctx: Context<WithdrawSpl>) -> Result<()> {

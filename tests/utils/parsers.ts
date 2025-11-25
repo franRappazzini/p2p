@@ -5,6 +5,9 @@ interface GlobalConfigParserParams {
   escrowCount: anchor.BN;
   feeBps: number;
   fiatDeadlineSecs: anchor.BN;
+  disputeDeadlineSecs: anchor.BN;
+  disputeFeeEscrow: anchor.BN;
+  availableLamports: anchor.BN;
   bump: number;
 }
 
@@ -14,6 +17,9 @@ function globalConfigParser(params: GlobalConfigParserParams) {
     escrowCount: params.escrowCount.toNumber(),
     feeBps: params.feeBps,
     fiatDeadlineSecs: params.fiatDeadlineSecs.toNumber(),
+    disputeDeadlineSecs: params.disputeDeadlineSecs.toNumber(),
+    disputeFeeEscrow: params.disputeFeeEscrow.toNumber(),
+    availableLamports: params.availableLamports.toNumber(),
     bump: params.bump,
   };
 }
@@ -25,6 +31,7 @@ interface EscrowParserParams {
   mint: anchor.web3.PublicKey;
   amount: anchor.BN;
   state: { [kind: string]: { "0": anchor.BN } };
+  disputedBy: { [kind: string]: {} };
   bump: number;
 }
 
@@ -37,6 +44,7 @@ function escrowParser(params: EscrowParserParams) {
     amount: params.amount.toNumber(),
     state: Object.keys(params.state)[0],
     timestamp: Object.values(Object.values(params.state)[0])[0].toNumber(),
+    disputedBy: Object.keys(params.disputedBy)[0],
     bump: params.bump,
   };
 }

@@ -1,6 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
 
-import { FEE_BPS, FIAT_DEADLINE_SECS } from "./utils/constants";
+import {
+  DISPUTE_DEADLINE_SECS,
+  DISPUTE_FEE_ESCROW,
+  FEE_BPS,
+  FIAT_DEADLINE_SECS,
+} from "./utils/constants";
 import {
   TOKEN_PROGRAM_ID,
   createMint,
@@ -10,6 +15,7 @@ import {
 import { createEventListeners, removeEventListener } from "./utils/events";
 import {
   getAllEscrowAccounts,
+  getDisputeVaultAccount,
   getEscrowAccount,
   getGlobalConfigAccount,
   getMintVaultAccount,
@@ -33,7 +39,7 @@ describe("p2p", () => {
   let randomMint: anchor.web3.PublicKey;
   const randomBuyer = anchor.web3.Keypair.generate();
 
-  const eventListeners = createEventListeners(program);
+  const eventListeners = []; // createEventListeners(program);
 
   before(async () => {
     randomMint = await createMint(
@@ -64,7 +70,9 @@ describe("p2p", () => {
   });
 
   it("`initialize`!", async () => {
-    const tx = await program.methods.initialize(FEE_BPS, FIAT_DEADLINE_SECS).rpc();
+    const tx = await program.methods
+      .initialize(FEE_BPS, FIAT_DEADLINE_SECS, DISPUTE_DEADLINE_SECS, DISPUTE_FEE_ESCROW)
+      .rpc();
     console.log("`initialize` tx signature:", tx);
 
     const globalConfigAccount = await getGlobalConfigAccount(program);
@@ -88,7 +96,6 @@ describe("p2p", () => {
     const globalConfigAccount = await getGlobalConfigAccount(program);
 
     const escrowAccount = await getEscrowAccount(program, globalConfigAccount.escrowCount - 1);
-    console.log({ escrowAccount });
 
     expect(globalConfigAccount.escrowCount).to.equal(1);
     expect(escrowAccount.amount).to.equal(amount.toNumber());
@@ -142,6 +149,89 @@ describe("p2p", () => {
     } catch (err) {
       expect(err.message).to.include("Account does not exist");
     }
+  });
+
+  it("`cancel_escrow`!", async () => {
+    // First, create a new escrow
+    const amount = bn(15_000_000); // 15
+    const createTx = await program.methods
+      .createEscrow(amount)
+      .accounts({
+        buyer: randomBuyer.publicKey,
+        mint: randomMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    // create a await to simulate time passing before cancelling
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    const id = 1; // second escrow
+    const tx = await program.methods
+      .cancelEscrow(bn(id))
+      .accounts({ tokenProgram: TOKEN_PROGRAM_ID })
+      .rpc();
+
+    console.log("`cancel_escrow` tx signature:", tx);
+
+    try {
+      await getEscrowAccount(program, id);
+      expect.fail("Escrow account should be closed after cancellation");
+    } catch (err) {
+      expect(err.message).to.include("Account does not exist");
+    }
+  });
+
+  it("`create_dispute`!", async () => {
+    // First, create a new escrow
+    const amount = bn(20_000_000); // 20
+    const createTx = await program.methods
+      .createEscrow(amount)
+      .accounts({
+        buyer: randomBuyer.publicKey,
+        mint: randomMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    const id = 2; // third escrow
+
+    const markEscrowAsPaidTx = await program.methods
+      .markEscrowAsPaid(bn(id))
+      .accounts({ buyer: randomBuyer.publicKey })
+      .signers([randomBuyer])
+      .rpc();
+
+    // create a await to simulate time passing before creating dispute
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    // Now, create a dispute on that escrow
+    const tx = await program.methods
+      .createDispute(bn(id))
+      .accounts({ disputant: randomBuyer.publicKey })
+      .signers([randomBuyer])
+      .rpc();
+
+    console.log("`create_dispute` tx signature:", tx);
+
+    const escrowAccount = await getEscrowAccount(program, id);
+    const disputeVaultAccount = await getDisputeVaultAccount(connection, program);
+
+    expect(escrowAccount.state).to.equal("dispute");
+    expect(disputeVaultAccount?.lamports).to.equal(DISPUTE_FEE_ESCROW.toNumber());
+
+    // create a await to simulate time passing before creating dispute
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    const reTx = await program.methods.createDispute(bn(id)).rpc();
+
+    console.log("`re-create_dispute` tx signature:", reTx);
+
+    const escrowAccountAfterRe = await getEscrowAccount(program, id);
+    const disputeVaultAccountAfterRe = await getDisputeVaultAccount(connection, program);
+
+    expect(escrowAccountAfterRe.state).to.equal("reDispute");
+    expect(disputeVaultAccountAfterRe?.lamports).to.equal(2 * DISPUTE_FEE_ESCROW.toNumber());
   });
 
   it("`withdraw_spl`!", async () => {

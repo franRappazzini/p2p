@@ -8,7 +8,10 @@ pub struct GlobalConfig {
     pub authority: Pubkey,
     pub escrow_count: u64,
     pub fee_bps: u16,
-    pub fiat_deadline_secs: i64,
+    pub fiat_deadline_secs: i64, // < 30 mins
+    pub dispute_deadline_secs: i64, // < 12 hours
+    pub dispute_fee_escrow: u64, // lamports
+    pub available_lamports: u64, // lamports available for withdrawal
     pub bump: u8,
 }
 

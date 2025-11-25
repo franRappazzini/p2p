@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 
-import { ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED } from "./constants";
+import { DISPUTE_VAULT_SEED, ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED } from "./constants";
 import { escrowParser, globalConfigParser } from "./parsers";
 
 import { P2p } from "../../target/types/p2p";
@@ -22,10 +22,7 @@ async function getEscrowAccount(program: anchor.Program<P2p>, id: number) {
     program.programId
   );
 
-  let res = escrowParser(await program.account.escrow.fetch(escrowPda));
-
-  console.log({ res });
-  return res;
+  return escrowParser(await program.account.escrow.fetch(escrowPda));
 }
 
 async function getAllEscrowAccounts(program: anchor.Program<P2p>) {
@@ -41,4 +38,23 @@ async function getMintVaultAccount(program: anchor.Program<P2p>, mint: anchor.we
   return await program.account.mintVault.fetch(mintVaultPda);
 }
 
-export { getGlobalConfigAccount, getEscrowAccount, getAllEscrowAccounts, getMintVaultAccount };
+// dispute vault account
+async function getDisputeVaultAccount(
+  connection: anchor.web3.Connection,
+  program: anchor.Program<P2p>
+) {
+  const [disputeVaultPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [DISPUTE_VAULT_SEED],
+    program.programId
+  );
+
+  return await connection.getAccountInfo(disputeVaultPda);
+}
+
+export {
+  getGlobalConfigAccount,
+  getEscrowAccount,
+  getAllEscrowAccounts,
+  getMintVaultAccount,
+  getDisputeVaultAccount,
+};
