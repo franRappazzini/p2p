@@ -7,13 +7,15 @@ use anchor_spl::{
 use crate::{
     constants::{ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED},
     events,
-    states::{Escrow, GlobalConfig, MintVault},
+    states::{Escrow, EscrowDisputedBy, EscrowState, GlobalConfig, MintVault},
 };
 
 #[derive(Accounts)]
 pub struct CreateEscrow<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
+
+    pub buyer: SystemAccount<'info>,
 
     #[account(
         mut,
@@ -83,9 +85,11 @@ impl<'info> CreateEscrow<'info> {
         self.escrow.set_inner(Escrow {
             id: self.global_config.escrow_count,
             seller: self.creator.key(),
-            buyer: Pubkey::default(),
+            buyer: self.buyer.key(),
             mint: self.mint.key(),
             amount,
+            state: EscrowState::Open(Clock::get()?.unix_timestamp),
+            disputed_by: EscrowDisputedBy::Nobody,
             bump: bumps.escrow,
         });
 

@@ -7,15 +7,26 @@ function createEventListeners(program: anchor.Program<P2p>) {
     console.log("Escrow Created Event:", event.id);
   });
 
-  const takeEscrowListener = program.addEventListener("escrowTaken", (event) => {
-    console.log("Escrow Taken Event:", event.id);
+  const markEscrowAsPaidListener = program.addEventListener("markEscrowAsPaid", (event) => {
+    console.log("Escrow Marked As Paid Event:", event.id);
   });
 
   const tokensReleasedListener = program.addEventListener("tokensReleased", (event) => {
     console.log("Tokens Released Event:", event.id);
   });
 
-  return [createEscrowListener, takeEscrowListener, tokensReleasedListener];
+  const cancelEscrowListener = program.addEventListener("escrowCancelled", (event) => {
+    console.log("Escrow Cancelled Event:", event.id);
+  });
+
+  // DisputeCreated and DisputeResolved
+
+  return [
+    createEscrowListener,
+    markEscrowAsPaidListener,
+    tokensReleasedListener,
+    cancelEscrowListener,
+  ];
 }
 
 async function removeEventListener(program: anchor.Program<P2p>, listeners: number[]) {

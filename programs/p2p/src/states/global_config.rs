@@ -8,6 +8,10 @@ pub struct GlobalConfig {
     pub authority: Pubkey,
     pub escrow_count: u64,
     pub fee_bps: u16,
+    pub fiat_deadline_secs: i64,    // < 30 mins
+    pub dispute_deadline_secs: i64, // < 12 hours
+    pub dispute_fee_escrow: u64,    // lamports
+    pub available_lamports: u64,    // lamports available for withdrawal
     pub bump: u8,
 }
 
@@ -24,5 +28,12 @@ impl GlobalConfig {
 
     pub fn increment_escrow_count(&mut self) {
         self.escrow_count = self.escrow_count.checked_add(1).unwrap();
+    }
+
+    pub fn add_available_lamports(&mut self) {
+        self.available_lamports = self
+            .available_lamports
+            .checked_add(self.dispute_fee_escrow)
+            .unwrap();
     }
 }
