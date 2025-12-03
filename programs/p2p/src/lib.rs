@@ -41,9 +41,8 @@ pub mod p2p {
     pub fn release_tokens_in_escrow(
         ctx: Context<ReleaseTokensInEscrow>,
         escrow_id: u64,
-        signature: [u8; 64],
     ) -> Result<()> {
-        ctx.accounts.release_tokens_in_escrow(escrow_id, signature)
+        ctx.accounts.release_tokens_in_escrow(escrow_id)
     }
 
     pub fn cancel_escrow(ctx: Context<CancelEscrow>, escrow_id: u64) -> Result<()> {

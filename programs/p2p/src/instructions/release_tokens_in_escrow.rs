@@ -8,17 +8,18 @@ use crate::{
     constants::{ESCROW_SEED, GLOBAL_CONFIG_SEED, MINT_VAULT_SEED},
     errors::P2pError,
     events,
-    states::{Escrow, EscrowState, GlobalConfig, MintVault},
+    states::{Escrow, GlobalConfig, MintVault},
 };
 
+// TODO check TODO.todo
 #[derive(Accounts)]
 #[instruction(escrow_id: u64)]
 pub struct ReleaseTokensInEscrow<'info> {
     #[account(mut)]
-    pub buyer: Signer<'info>,
+    pub buyer: SystemAccount<'info>,
 
     #[account(mut)]
-    pub seller: SystemAccount<'info>,
+    pub seller: Signer<'info>,
 
     #[account(
         seeds = [GLOBAL_CONFIG_SEED],
@@ -58,7 +59,7 @@ pub struct ReleaseTokensInEscrow<'info> {
 
     #[account(
         init_if_needed,
-        payer = buyer,
+        payer = seller,
         associated_token::mint = mint,
         associated_token::authority = buyer,
         associated_token::token_program = token_program,
@@ -71,20 +72,7 @@ pub struct ReleaseTokensInEscrow<'info> {
 }
 
 impl<'info> ReleaseTokensInEscrow<'info> {
-    pub fn release_tokens_in_escrow(&mut self, _escrow_id: u64, signature: [u8; 64]) -> Result<()> {
-        // verify signature
-        let message = format!("approve_release:{}", self.escrow.key()); // less than 3000 CU (tested manually)
-
-        brine_ed25519::sig_verify(
-            &self.seller.key().to_bytes(),
-            &signature,
-            &message.as_bytes(),
-        )
-        .map_err(|err| {
-            msg!("Signature verification failed {:?}", err);
-            P2pError::SignatureVerificationFailed
-        })?;
-
+    pub fn release_tokens_in_escrow(&mut self, _escrow_id: u64) -> Result<()> {
         // transfer tokens to buyer ata
         let mint_key = self.mint.key();
         let signer_seeds: &[&[&[u8]]] =

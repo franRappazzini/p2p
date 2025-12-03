@@ -24,8 +24,10 @@ import {
 import { P2p } from "../target/types/p2p";
 import { Program } from "@coral-xyz/anchor";
 import { bn } from "./utils/functions";
+import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 import { decodeUTF8 } from "tweetnacl-util";
 import { expect } from "chai";
+import fs from "fs";
 import nacl from "tweetnacl";
 
 describe("p2p", () => {
@@ -49,6 +51,8 @@ describe("p2p", () => {
       null,
       6 // like USDC
     );
+
+    console.log("random mint", randomMint.toString());
 
     const walletAta = await getOrCreateAssociatedTokenAccount(
       connection,
@@ -126,16 +130,19 @@ describe("p2p", () => {
     const escrows = await getAllEscrowAccounts(program);
 
     // Create the message and sign it with the buyer wallet
-    const message = `approve_release:${escrows[id].publicKey.toString()}`;
-    const messageBytes = decodeUTF8(message);
-    const signature = nacl.sign.detached(messageBytes, wallet.payer?.secretKey);
-    const isValid = nacl.sign.detached.verify(messageBytes, signature, wallet.publicKey.toBytes());
-    expect(isValid).to.be.true;
+    /* 
+      const message = `approve_release:${escrows[id].publicKey.toString()}`;
+      const messageBytes = decodeUTF8(message);
+      const signature = nacl.sign.detached(messageBytes, wallet.payer?.secretKey);
+      const isValid = nacl.sign.detached.verify(messageBytes, signature, wallet.publicKey.toBytes());
+      expect(isValid).to.be.true;
+     */
 
     const tx = await program.methods
-      .releaseTokensInEscrow(bn(id), Array.from(signature))
+      .releaseTokensInEscrow(bn(id) /* Array.from(signature) */)
       .accounts({
-        buyer: randomBuyer.publicKey,
+        seller: wallet.publicKey,
+        // buyer: randomBuyer.publicKey,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .signers([randomBuyer])
