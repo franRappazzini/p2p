@@ -4,6 +4,7 @@ use anchor_lang::prelude::*;
 pub struct EscrowCreated {
     pub id: u64,
     pub seller: Pubkey,
+    pub buyer: Pubkey,
     pub mint: Pubkey,
     pub amount: u64,
 }
