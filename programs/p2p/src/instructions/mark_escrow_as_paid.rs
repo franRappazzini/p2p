@@ -1,4 +1,8 @@
 use anchor_lang::prelude::*;
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token_interface::{Mint, TokenAccount, TokenInterface},
+};
 
 use crate::{
     constants::{ESCROW_SEED, GLOBAL_CONFIG_SEED},
@@ -24,9 +28,26 @@ pub struct MarkEscrowAsPaid<'info> {
         seeds = [ESCROW_SEED, escrow_id.to_le_bytes().as_ref()],
         bump = escrow.bump,
         has_one = buyer,
+        has_one = mint,
         constraint = matches!(escrow.state, EscrowState::Open(_)) @ P2pError::EscrowAlreadyTaken,
     )]
     pub escrow: Account<'info, Escrow>,
+
+    #[account(address = escrow.mint)]
+    pub mint: InterfaceAccount<'info, Mint>,
+
+    #[account(
+        init_if_needed,
+        payer = buyer,
+        associated_token::mint = mint,
+        associated_token::authority = buyer,
+        associated_token::token_program = token_program,
+    )]
+    pub buyer_ata: InterfaceAccount<'info, TokenAccount>,
+
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Interface<'info, TokenInterface>,
+    pub system_program: Program<'info, System>,
 }
 
 impl<'info> MarkEscrowAsPaid<'info> {

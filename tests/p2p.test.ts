@@ -67,7 +67,7 @@ describe("p2p", () => {
       randomMint,
       walletAta.address,
       wallet.payer,
-      1_000_000_000 // 1,000
+      1_000_000_000_000 // 1,000,000
     );
 
     await connection.requestAirdrop(randomBuyer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
@@ -112,7 +112,7 @@ describe("p2p", () => {
     const id = bn(0);
     const tx = await program.methods
       .markEscrowAsPaid(id)
-      .accounts({ buyer: randomBuyer.publicKey })
+      .accounts({ buyer: randomBuyer.publicKey, tokenProgram: TOKEN_PROGRAM_ID })
       .signers([randomBuyer])
       .rpc();
 
@@ -141,11 +141,8 @@ describe("p2p", () => {
     const tx = await program.methods
       .releaseTokensInEscrow(bn(id) /* Array.from(signature) */)
       .accounts({
-        seller: wallet.publicKey,
-        // buyer: randomBuyer.publicKey,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
-      .signers([randomBuyer])
       .rpc();
 
     console.log("`release_tokens_in_escrow` tx signature:", tx);
@@ -208,7 +205,7 @@ describe("p2p", () => {
 
     const markEscrowAsPaidTx = await program.methods
       .markEscrowAsPaid(bn(id))
-      .accounts({ buyer: randomBuyer.publicKey })
+      .accounts({ buyer: randomBuyer.publicKey, tokenProgram: TOKEN_PROGRAM_ID })
       .signers([randomBuyer])
       .rpc();
 

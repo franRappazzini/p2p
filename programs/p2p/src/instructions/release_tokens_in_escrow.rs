@@ -11,13 +11,9 @@ use crate::{
     states::{Escrow, GlobalConfig, MintVault},
 };
 
-// TODO check TODO.todo
 #[derive(Accounts)]
 #[instruction(escrow_id: u64)]
 pub struct ReleaseTokensInEscrow<'info> {
-    #[account(mut)]
-    pub buyer: SystemAccount<'info>,
-
     #[account(mut)]
     pub seller: Signer<'info>,
 
@@ -33,7 +29,6 @@ pub struct ReleaseTokensInEscrow<'info> {
         seeds = [ESCROW_SEED, escrow_id.to_le_bytes().as_ref()],
         bump = escrow.bump,
         has_one = seller,
-        has_one = buyer,
         has_one = mint,
         constraint = escrow.can_release() @ P2pError::InvalidEscrowState,
     )]
@@ -58,10 +53,9 @@ pub struct ReleaseTokensInEscrow<'info> {
     pub mint_vault_ata: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
-        init_if_needed,
-        payer = seller,
+        mut,
         associated_token::mint = mint,
-        associated_token::authority = buyer,
+        associated_token::authority = escrow.buyer,
         associated_token::token_program = token_program,
     )]
     pub buyer_ata: InterfaceAccount<'info, TokenAccount>,
@@ -101,7 +95,7 @@ impl<'info> ReleaseTokensInEscrow<'info> {
         emit!(events::TokensReleased {
             id: self.escrow.id,
             seller: self.seller.key(),
-            buyer: self.buyer.key(),
+            buyer: self.escrow.buyer,
             mint: self.mint.key(),
             amount: self.escrow.amount,
         });
