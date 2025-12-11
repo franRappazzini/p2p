@@ -1,5 +1,7 @@
 # P2P Escrow - Solana Program
 
+**Client Repository**: [https://github.com/franRappazzini/p2p-client](https://github.com/franRappazzini/p2p-client)
+
 A peer-to-peer (P2P) escrow program built on Solana using the Anchor framework. This project facilitates secure SPL token exchanges between buyers and sellers, with dispute resolution mechanisms and protection for both parties.
 
 ## Auditware Radar audit
@@ -8,6 +10,7 @@ A peer-to-peer (P2P) escrow program built on Solana using the Anchor framework. 
 
 ## 📋 Table of Contents
 
+- [How Solana Powers the Core of Our Project](#how-solana-powers-the-core-of-our-project)
 - [Overview](#-overview)
 - [Features](#-features)
 - [Project Structure](#-project-structure)
@@ -21,6 +24,28 @@ A peer-to-peer (P2P) escrow program built on Solana using the Anchor framework. 
 - [Deployment](#-deployment)
 - [License](#-license)
 
+# How Solana Powers the Core of Our Project
+
+Solana is not just a blockchain choice for our P2P exchange platform—it's the fundamental enabler that makes decentralized fiat-to-crypto trading actually viable and competitive with centralized solutions.
+
+## Speed Enables Real-Time Trading
+
+P2P exchanges require immediate transaction finality. When a buyer confirms fiat payment, the crypto needs to be released from escrow instantly. Solana's 400ms block times and sub-second finality make this possible. Users experience the responsiveness they expect from modern financial applications, with transactions confirming almost immediately. This speed is crucial for building trust in the P2P exchange process, where any delay creates uncertainty and friction.
+
+## Low Fees Make Micro-Transactions Feasible
+
+Our platform targets global adoption, including users in emerging markets who may trade small amounts. With transaction costs averaging $0.00025, Solana makes every trade economically viable regardless of size. Whether someone is trading $10 or $10,000, the fees remain negligible. This truly democratizes access to cryptocurrency, ensuring that cost is never a barrier to entry for anyone, anywhere in the world.
+
+## Program Architecture for Trustless Escrow
+
+Our smart contract leverages Solana's account model and Program Derived Addresses (PDAs) to create secure, trustless escrow mechanics. When an order is created, funds are locked in a PDA controlled by our program logic—neither party can access them unilaterally. The escrow automatically releases crypto to the buyer only when conditions are met, or returns it to the seller if the trade is cancelled. This eliminates counterparty risk without requiring a trusted third party, making peer-to-peer trading truly safe and decentralized.
+
+## Scalability for Global Adoption
+
+Solana's capacity to handle 65,000+ transactions per second means our platform can scale globally without congestion or degraded performance. As trading volume grows, the network maintains consistent speed and costs. This scalability is critical for a P2P platform where thousands of users might be creating orders, updating escrows, and completing trades simultaneously across different regions and time zones.
+
+**In summary:** Solana's combination of speed, cost-efficiency, and robust programming capabilities makes decentralized P2P fiat-crypto exchange not just possible, but practical and scalable. The network provides the infrastructure needed to deliver a smooth, affordable, and trustless experience that can serve users globally without compromise.
+
 ## 🎯 Overview
 
 This Solana program implements a decentralized escrow system that enables secure P2P transactions between users. The typical flow includes:
@@ -28,9 +53,8 @@ This Solana program implements a decentralized escrow system that enables secure
 1. **Seller** deposits tokens into an escrow account
 2. **Buyer** makes the fiat payment off-chain
 3. **Buyer** marks the escrow as paid
-4. **Seller** signs a message off-chain and sends the signature to the **Buyer**
-5. **Buyer** calls the program with the signature to release the tokens (program verifies validity)
-6. If there are issues, either party can create a dispute
+4. **Seller** releases the tokens to the buyer after confirming the fiat payment
+5. If there are issues, either party can create a dispute
 
 The program includes:
 
@@ -44,7 +68,7 @@ The program includes:
 
 - ✅ **Secure Escrow**: Tokens locked until both parties fulfill their obligations
 - ✅ **Dispute System**: Two-level mechanism (dispute and re-dispute)
-- ✅ **Signature Validation**: Cryptographic verification to release tokens
+- ✅ **Direct Release**: Seller releases tokens after confirming fiat payment
 - ✅ **Configurable Deadlines**: Time limits for payments and disputes
 - ✅ **Flexible Fees**: Configurable basis points (BPS) system
 - ✅ **Multi-Token**: Support for any SPL token
@@ -197,19 +221,18 @@ pub fn mark_escrow_as_paid(
 
 ### 4. `release_tokens_in_escrow`
 
-Releases tokens to the buyer after verifying the seller's signature.
+Releases tokens to the buyer. Called by the seller after confirming the fiat payment.
 
 ```rust
 pub fn release_tokens_in_escrow(
     ctx: Context<ReleaseTokensInEscrow>,
     escrow_id: u64,
-    signature: [u8; 64],             // Seller's ed25519 signature
 ) -> Result<()>
 ```
 
 **Process:**
 
-1. Verifies seller's signature using the message: `"approve_release:{escrow_pubkey}"`
+1. Verifies the caller is the seller
 2. Calculates and deducts the fee
 3. Transfers tokens to buyer
 4. Updates vault with fees
@@ -218,19 +241,8 @@ pub fn release_tokens_in_escrow(
 
 **Requirements:**
 
+- Only the seller can call this function
 - Escrow must be in `FiatPaid` state
-- Signature must be valid and from the seller
-
-**Signature example (TypeScript):**
-
-```typescript
-import nacl from "tweetnacl";
-import { decodeUTF8 } from "tweetnacl-util";
-
-const message = `approve_release:${escrowPubkey.toString()}`;
-const messageBytes = decodeUTF8(message);
-const signature = nacl.sign.detached(messageBytes, sellerKeypair.secretKey);
-```
 
 ---
 
